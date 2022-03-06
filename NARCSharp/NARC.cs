@@ -31,6 +31,11 @@ namespace NARCSharp {
         private readonly ulong btnfUnknown = 281474976710664;
 
         /// <summary>
+        /// Creates a new NARC.
+        /// </summary>
+        public NARC() { }
+
+        /// <summary>
         /// Reads a <see cref="NARC"/> from a byte array.
         /// </summary>
         /// <param name="bytes"></param>
