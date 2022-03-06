@@ -6,6 +6,9 @@
     <Company />
     <Authors>Jenrikku (JkKU) and Trippixyz</Authors>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Description>A simple C# library for reading and writing NARC files.</Description>
+    <Copyright>Jenrikku (JkKU) and Trippixyz</Copyright>
+    <RepositoryUrl>https://github.com/Jenrikku/NARCSharp</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
