@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NARCSharp\NARCSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="EditorCoreCommon">
+      <HintPath>..\..\Route Dokan Passport Rewritten\dll\EditorCoreCommon.dll</HintPath>
+    </Reference>
+    <Reference Include="SARCExt">
+      <HintPath>..\..\Route Dokan Passport Rewritten\dll\SARCExt.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
