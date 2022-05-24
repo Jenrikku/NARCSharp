@@ -4,14 +4,14 @@ using System.Text;
 
 namespace NARCSharp.Sections {
     /// <summary>
-    /// The <see cref="BTAF"/> section contains the positions where the 
+    /// The <see cref="BFAT"/> section contains the positions where the 
     /// files are contained inside the <see cref="NARC"/>.
     /// </summary>
-    internal class BTAF {
+    internal class BFAT {
         public (uint offset, uint size)[] FileDataArray;
 
-        public BTAF() { }
-        public BTAF(BinaryDataReader reader) {
+        public BFAT() { }
+        public BFAT(BinaryDataReader reader) {
             uint numberOfFiles = reader.ReadUInt32();
             FileDataArray = new (uint, uint)[numberOfFiles];
 
@@ -23,14 +23,14 @@ namespace NARCSharp.Sections {
     }
 
     /// <summary>
-    /// The <see cref="BTNF"/> section contains the filenames for the files.
+    /// The <see cref="BFNT"/> section contains the filenames for the files.
     /// </summary>
-    internal class BTNF {
+    internal class BFNT {
         public string[] FileNames;
         public ulong Unknown;
 
-        public BTNF() { }
-        public BTNF(BinaryDataReader reader, uint numberOfFiles) {
+        public BFNT() { }
+        public BFNT(BinaryDataReader reader, uint numberOfFiles) {
             Unknown = reader.ReadUInt64();
             FileNames = new string[numberOfFiles];
 
@@ -44,13 +44,13 @@ namespace NARCSharp.Sections {
     }
 
     /// <summary>
-    /// The <see cref="GMIF"/> section contains the bytes (content) of each file.
+    /// The <see cref="FIMG"/> section contains the bytes (content) of each file.
     /// </summary>
-    internal class GMIF {
+    internal class FIMG {
         public byte[][] FilesData;
 
-        public GMIF() { }
-        public GMIF(BinaryDataReader reader, BTAF btaf) {
+        public FIMG() { }
+        public FIMG(BinaryDataReader reader, BFAT btaf) {
             FilesData = new byte[btaf.FileDataArray.Length][];
             long PositionBuf = reader.Position;
 

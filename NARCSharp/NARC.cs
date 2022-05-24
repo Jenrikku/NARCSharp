@@ -63,31 +63,33 @@ namespace NARCSharp {
             sectionCount = reader.ReadUInt16();
 
             // Buffers
-            BTAF btaf = new();
-            BTNF btnf = new();
-            GMIF gmif = new();
+            BFAT btaf = new();
+            BFNT btnf = new();
+            FIMG gmif = new();
 
             // Get all the sections and writes them to the buffers:
             for(uint i = 0; i < sectionCount; i++) {
-                long PositionBuf = reader.Position;
-                string cSectionMagic = Encoding.ASCII.GetString(reader.ReadBytes(4)).ToUpperInvariant();
-                uint cSectionSize = reader.ReadUInt32();
+                uint cSectionSize;
+                using(reader.TemporarySeek()) {
+                    string cSectionMagic = Encoding.ASCII.GetString(reader.ReadBytes(4)).ToUpperInvariant();
+                    cSectionSize = reader.ReadUInt32();
 #if DEBUG
-                Console.WriteLine(cSectionMagic);
+                    Console.WriteLine(cSectionMagic);
 #endif
-                switch(cSectionMagic) {
-                    case "BTAF":
-                        btaf = new(reader);
-                        break;
-                    case "BTNF":
-                        btnf = new(reader, (uint) btaf.FileDataArray.Length);
-                        break;
-                    case "GMIF":
-                        gmif = new(reader, btaf);
-                        break;
+                    switch(cSectionMagic) {
+                        case "BTAF":
+                            btaf = new(reader);
+                            break;
+                        case "BTNF":
+                            btnf = new(reader, (uint) btaf.FileDataArray.Length);
+                            break;
+                        case "GMIF":
+                            gmif = new(reader, btaf);
+                            break;
+                    }
                 }
 
-                reader.Position = PositionBuf + cSectionSize;
+                reader.Position += cSectionSize;
             }
 
             // Parse the buffers into objects:
@@ -156,11 +158,11 @@ namespace NARCSharp {
             #region GMIF
             long gmifPosition = WriteSectionHeader("GMIF"); // Header.
 
-            long btafCurrentPosition = btafPosition + 12; // First offset-size position. (BTAF)
+            long btafCurrentPosition = btafPosition + 12; // First offset-size position. (BFAT)
             foreach(byte[] file in Files.Values) {
-                WriteBTAFEntry(); // BTAF offset
+                WriteBTAFEntry(); // BFAT offset
                 writer.Write(file);
-                WriteBTAFEntry(); // BTAF size.
+                WriteBTAFEntry(); // BFAT size.
                 writer.Align(16);
             }
 
