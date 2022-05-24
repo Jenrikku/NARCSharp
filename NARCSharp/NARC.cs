@@ -25,7 +25,7 @@ namespace NARCSharp {
         /// </summary>
         public Dictionary<string, byte[]> Files { get; set; } = new Dictionary<string, byte[]>();
 
-        // private
+        // private (for proper writing)
         private readonly ushort headerLength = 16;
         private readonly ushort sectionCount = 3;
         private readonly ulong btnfUnknown = 281474976710664;
@@ -63,9 +63,9 @@ namespace NARCSharp {
             sectionCount = reader.ReadUInt16();
 
             // Buffers
-            BFAT btaf = new();
-            BFNT btnf = new();
-            FIMG gmif = new();
+            BFAT bfat = new();
+            BFNT bfnt = new();
+            FIMG fimg = new();
 
             // Get all the sections and writes them to the buffers:
             for(uint i = 0; i < sectionCount; i++) {
@@ -78,13 +78,13 @@ namespace NARCSharp {
 #endif
                     switch(cSectionMagic) {
                         case "BTAF":
-                            btaf = new(reader);
+                            bfat = new(reader);
                             break;
                         case "BTNF":
-                            btnf = new(reader, (uint) btaf.FileDataArray.Length);
+                            bfnt = new(reader, (uint) bfat.FileDataArray.Length);
                             break;
                         case "GMIF":
-                            gmif = new(reader, btaf);
+                            fimg = new(reader, bfat);
                             break;
                     }
                 }
@@ -93,8 +93,8 @@ namespace NARCSharp {
             }
 
             // Parse the buffers into objects:
-            for(int i = 0; i < btnf.FileNames.Length; i++)
-                Files.Add(btnf.FileNames[i], gmif.FilesData[i]);
+            for(int i = 0; i < bfnt.FileNames.Length; i++)
+                Files.Add(bfnt.FileNames[i], fimg.FilesData[i]);
 
             // Set unknown value (for proper writing):
             btnfUnknown = btnf.Unknown;
@@ -124,26 +124,26 @@ namespace NARCSharp {
 
             writer.Write(Version); // Version.
 
-            long headerLengthPorsition = writer.Position;
+            long headerLengthPosition = writer.Position;
             writer.WriteBytes(4, 0x00); // Skips length writing.
 
             writer.Write(headerLength); // Header length.
             writer.Write(sectionCount); // Section count.
             #endregion
 
-            #region BTAF preparation
-            long btafPosition = WriteSectionHeader("BTAF"); // Header.
+            #region BFAT preparation
+            long bfatPosition = WriteSectionHeader("BTAF"); // Header.
             writer.Write((uint) Files.Count); // File count.
 
             for(uint i = 0; i < Files.Count; i++) // Reads unset bytes per file. (Reserved space)
                 writer.WriteBytes(8, 0x00);
 
-            WriteSectionLength(btafPosition);
+            WriteSectionLength(bfatPosition);
             #endregion
 
-            #region BTNF
-            long btnfPosition = WriteSectionHeader("BTNF"); // Header.
             writer.Write(btnfUnknown);
+            #region BFNT
+            long bfntPosition = WriteSectionHeader("BTNF"); // Header.
 
             foreach(string name in Files.Keys)
                 writer.Write(name, BinaryStringFormat.ByteLengthPrefix);
@@ -152,25 +152,26 @@ namespace NARCSharp {
             writer.Align(32);
             writer.Position += 8;
 
-            WriteSectionLength(btnfPosition);
+            WriteSectionLength(bfntPosition);
             #endregion
 
-            #region GMIF
-            long gmifPosition = WriteSectionHeader("GMIF"); // Header.
+            #region FIMG
+            long fimgPosition = WriteSectionHeader("GMIF"); // Header.
 
-            long btafCurrentPosition = btafPosition + 12; // First offset-size position. (BFAT)
+            long bfatCurrentPosition = bfatPosition + 12; // First offset-size position. (BFAT)
             foreach(byte[] file in Files.Values) {
-                WriteBTAFEntry(); // BFAT offset
+                WriteBFATEntry(); // BFAT offset
                 writer.Write(file);
-                WriteBTAFEntry(); // BFAT size.
+                WriteBFATEntry(); // BFAT size.
                 writer.Align(16);
             }
 
-            WriteSectionLength(gmifPosition);
+            WriteSectionLength(fimgPosition);
             #endregion
 
-            writer.Position = headerLengthPorsition;
+            writer.Position = headerLengthPosition;
             writer.Write((uint) writer.BaseStream.Length); // Total file length.
+
 
             long WriteSectionHeader(string magic) {
                 long startPosition = writer.Position;
@@ -190,15 +191,15 @@ namespace NARCSharp {
                 }
             }
 
-            void WriteBTAFEntry() {
-                uint value = (uint) (writer.Position - (gmifPosition + 8));
+            void WriteBFATEntry() {
+                uint value = (uint) (writer.Position - (fimgPosition + 8));
 
                 using(writer.TemporarySeek()) {
-                    writer.Position = btafCurrentPosition;
+                    writer.Position = bfatCurrentPosition;
                     writer.Write(value);
                 }
 
-                btafCurrentPosition += 4;
+                bfatCurrentPosition += 4;
             }
         }
     }
