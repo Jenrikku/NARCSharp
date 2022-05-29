@@ -16,7 +16,7 @@ namespace TestingUtilities {
             Console.WriteLine("3 - Simple read-write.");
             Console.WriteLine("4 - YAZ0 Compression.");
             Console.WriteLine("5 - YAZ0 Decompress-Compress.");
-            Console.WriteLine("6 - Read-write with YAZ0");
+            Console.WriteLine("6 - Read-write with YAZ0.");
 
             switch(Console.ReadKey(true).KeyChar) {
                 case '0':
@@ -36,18 +36,17 @@ namespace TestingUtilities {
                             .Write(new FileStream(content + ".new.narc", FileMode.Create));
                     break;
                 case '4':
-                    File.WriteAllBytes(content + ".szs", YAZ0.Compress(content));
+                    File.WriteAllBytes(content + ".szs", YAZ0.Compress(content, 9));
                     break;
                 case '5':
-                    File.WriteAllBytes(content + ".repacked.szs", YAZ0.Compress(YAZ0.Decompress(content), 3));
+                    File.WriteAllBytes(content + ".repacked.szs", YAZ0.Compress(YAZ0.Decompress(content), 9));
                     break;
                 case '6':
-                    File.WriteAllBytes(content + ".repack.szs",
+                    File.WriteAllBytes(content + ".repacked.szs",
                         YAZ0.Compress(
                             new NARC(
-                                new MemoryStream(
-                                    YAZ0.Decompress(content)))
-                            .Write(), 3));
+                                YAZ0.Decompress(content))
+                            .Write(), 9));
                     break;
                 default:
                     Console.WriteLine("Invalid input.");

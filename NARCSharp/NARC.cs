@@ -216,14 +216,14 @@ namespace NARCSharp {
             long bfatIndex = 0x1C; // BFAT current position.
             foreach(byte[] entry in fileContainer) {
                 uint currentOffset = 
-                    (uint) writer.Position + 4 - (uint) fimgLengthIndex; // BFAT pair first entry.
+                    (uint) (writer.Position - fimgLengthIndex - 4); // BFAT pair first entry.
 
                 writer.Write(entry); // File contents.
 
                 using(writer.TemporarySeek()) {
                     writer.Position = bfatIndex;
-                    writer.Write(currentOffset);                // Relative offset of the file to the FIMG section.
-                    writer.Write(currentOffset + entry.Length); // Relative end of the file to the FIMG section.
+                    writer.Write(currentOffset); // Relative offset of the file to the FIMG section.
+                    writer.Write((uint) (currentOffset + entry.Length)); // Relative end of the file to the FIMG section.
 
                     bfatIndex += 8; // Update bfatIndex.
                 }
