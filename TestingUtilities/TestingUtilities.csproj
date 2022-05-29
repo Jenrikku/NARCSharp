@@ -11,10 +11,10 @@
 
   <ItemGroup>
     <Reference Include="EditorCoreCommon">
-      <HintPath>..\..\Route Dokan Passport Rewritten\dll\EditorCoreCommon.dll</HintPath>
+      <HintPath>dll\EditorCoreCommon.dll</HintPath>
     </Reference>
     <Reference Include="SARCExt">
-      <HintPath>..\..\Route Dokan Passport Rewritten\dll\SARCExt.dll</HintPath>
+      <HintPath>dll\SARCExt.dll</HintPath>
     </Reference>
   </ItemGroup>
 

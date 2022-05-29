@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32126.315
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32427.441
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NARCSharp", "NARCSharp\NARCSharp.csproj", "{9BB9345C-D64A-44E9-B4C0-2142D979B021}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NARCSharp", "NARCSharp\NARCSharp.csproj", "{9BB9345C-D64A-44E9-B4C0-2142D979B021}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestingUtilities", "TestingUtilities\TestingUtilities.csproj", "{F9674086-C808-4021-AF9A-6C2852077DF5}"
+Project("{F9674086-C808-4021-AF9A-6C2852077DF5}") = "TestingUtilities", "TestingUtilities\TestingUtilities.csproj", "{F9674086-C808-4021-AF9A-6C2852077DF5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

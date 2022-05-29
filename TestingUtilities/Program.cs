@@ -2,7 +2,7 @@
 using NARCSharp;
 using System;
 using System.IO;
-using System.Collections.Generic;
+using TrueTree;
 
 namespace TestingUtilities {
     class Program {
@@ -17,7 +17,6 @@ namespace TestingUtilities {
             Console.WriteLine("4 - YAZ0 Compression.");
             Console.WriteLine("5 - YAZ0 Decompress-Compress.");
             Console.WriteLine("6 - Read-write with YAZ0");
-            Console.WriteLine("7 - BCMDL Swap (With YAZ0)");
 
             switch(Console.ReadKey(true).KeyChar) {
                 case '0':
@@ -29,8 +28,7 @@ namespace TestingUtilities {
                 case '2':
                     {
                         NARC narc = new(new FileStream(content, FileMode.Open));
-                        foreach(KeyValuePair<string, byte[]> cFile in narc.Files)
-                            File.WriteAllBytes(Path.Join(Path.GetDirectoryName(content), cFile.Key), cFile.Value);
+                        IterateAndExtract(narc.FilesRoot, content + " unpacked");
                     }                    
                     break;
                 case '3':
@@ -51,21 +49,24 @@ namespace TestingUtilities {
                                     YAZ0.Decompress(content)))
                             .Write(), 3));
                     break;
-                case '7':
-                    Console.WriteLine("Please input a bcmdl:");
-                    string bcmdl = Console.ReadLine().Replace("\"", string.Empty);
-                    Console.WriteLine("Please input the name of the bcmdl inside the szs:");
-                    string name = Console.ReadLine();
-
-                    NARC swappedNarc = new(
-                        new MemoryStream(
-                            YAZ0.Decompress(content)));
-
-                    swappedNarc[name] = File.ReadAllBytes(bcmdl);
-
-                    File.WriteAllBytes(content + ".swapped.szs",
-                        YAZ0.Compress(swappedNarc.Write(), 3));
+                default:
+                    Console.WriteLine("Invalid input.");
                     break;
+            }
+
+            void IterateAndExtract(Node folder, string path) {
+                string absolutePath = path;
+                Directory.CreateDirectory(absolutePath);
+
+                foreach(Node node in folder)
+                    if(node.Contents[0] == true) // If it is a "folder"
+                        IterateAndExtract(
+                            node,
+                            Path.Join(absolutePath, node.Name));
+                    else                         // If it is a file.
+                        File.WriteAllBytes(
+                            Path.Join(absolutePath, node.Name),
+                            node.Contents[1]);
             }
         }
     }
