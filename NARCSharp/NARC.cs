@@ -227,6 +227,8 @@ namespace NARCSharp {
 
                     bfatIndex += 8; // Update bfatIndex.
                 }
+
+                writer.Align(128);
             }
             #endregion
 
