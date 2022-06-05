@@ -201,7 +201,7 @@ namespace NARCSharp {
             writer.Write(bfntHeader.Length + 4); // Header length.
             writer.Write(bfntHeader);            // Header data.
 
-            byte folderCount = 0;
+            byte folderCount = 1;
             WriteBFNTEntry(FilesRoot); // Write all BFNT entries recursively.
             #endregion
 
