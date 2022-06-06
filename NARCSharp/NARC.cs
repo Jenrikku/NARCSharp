@@ -203,6 +203,8 @@ namespace NARCSharp {
 
             byte folderCount = 1;
             WriteBFNTEntry(FilesRoot); // Write all BFNT entries recursively.
+
+            writer.Align(128); // Alignment requiered for proper reading.
             #endregion
 
             #region FIMG & BFAT
@@ -228,7 +230,7 @@ namespace NARCSharp {
                     bfatIndex += 8; // Update bfatIndex.
                 }
 
-                writer.Align(128);
+                writer.Align(128); // Alignment requiered for proper reading.
             }
             #endregion
 
