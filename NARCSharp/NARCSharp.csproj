@@ -9,8 +9,9 @@
     <Description>A simple C# library for reading and writing NARC files.</Description>
     <Copyright>Jenrikku (JkKU) and Trippixyz</Copyright>
     <RepositoryUrl>https://github.com/Jenrikku/NARCSharp</RepositoryUrl>
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +22,10 @@
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
+    </None>
+    <None Include="..\icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
   
