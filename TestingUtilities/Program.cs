@@ -2,7 +2,7 @@
 using NARCSharp;
 using System;
 using System.IO;
-using TrueTree;
+using NARCSharp.TrueTree;
 
 namespace TestingUtilities {
     class Program {

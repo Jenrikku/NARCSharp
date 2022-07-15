@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using TrueTree;
+using NARCSharp.TrueTree;
 
 namespace NARCSharp {
     public class NARC {

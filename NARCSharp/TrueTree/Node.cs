@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace TrueTree {
+namespace NARCSharp.TrueTree {
     public class Node : IEnumerable<Node> {
         /// <summary>
         /// Returns the first occurrence of a child with the same name.
