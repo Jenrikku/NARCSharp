@@ -1,10 +1,7 @@
 ﻿using Syroot.BinaryData;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
-using NARCSharp.TrueTree;
 
 namespace NARCSharp {
     public class NARC {
@@ -16,20 +13,17 @@ namespace NARCSharp {
         /// <summary>
         /// The version of the <see cref="NARC"/> file, often being '256'.
         /// </summary>
-        public ushort Version { get; set; } = 1;
+        public ushort Version { get => RootNode.Metadata.Version; set => RootNode.Metadata.Version = value; }
 
         /// <summary>
         /// Contains all the files inside the <see cref="NARC"/> file. It can be iterated.
         /// </summary>
-        public Node FilesRoot { get; set; } = new("root");
-
-        // For proper writing:
-        private readonly byte[] bfntHeader;
+        public BranchNode RootNode { get; set; } = new('*');
 
         /// <summary>
         /// Creates a new empty NARC.
         /// </summary>
-        public NARC() { }
+        public NARC() { RootNode.Metadata = new NARCHeader(); }
 
         /// <summary>
         /// Reads a <see cref="NARC"/> from a byte array.
@@ -48,7 +42,7 @@ namespace NARCSharp {
         /// </summary>
         /// <param name="leaveOpen">Whether or not the stream will be kept opened. (false for disposing it)</param>
         public NARC(Stream stream, bool leaveOpen = false) {
-            using BinaryDataReader reader = new(stream, Encoding.ASCII, leaveOpen);
+            using BinaryDataReader reader = new(stream, leaveOpen);
 
             // Magic check:
             if(reader.ReadString(4) != "NARC")
@@ -58,7 +52,11 @@ namespace NARCSharp {
             ByteOrder = (ByteOrder) reader.ReadUInt16();
             reader.ByteOrder = ByteOrder;
 
-            Version = reader.ReadUInt16();
+            // Prevention of outside modifications.
+            if(RootNode.Metadata is not NARCHeader)
+                RootNode.Metadata = new NARCHeader();
+
+            RootNode.Metadata.Version = reader.ReadUInt16();
 
             reader.Position += 4; // Length skip (calculated when writing).
 
@@ -103,28 +101,27 @@ namespace NARCSharp {
                 fimgIndex += 8; // Skips magic and length.
             }
 
-            uint bfntHeaderLength = reader.ReadUInt32() - 4;
+            uint bfntUnknownLength = reader.ReadUInt32() - 4;
 
-            bfntHeader = new byte[bfntHeaderLength];
-            for(int i = 0; i < bfntHeaderLength; i++)
-                bfntHeader[i] = reader.ReadByte();
+            RootNode.Metadata.bfntUnknown = new byte[bfntUnknownLength];
+            for(int i = 0; i < bfntUnknownLength; i++)
+                RootNode.Metadata.bfntUnknown[i] = reader.ReadByte();
             #endregion
 
-            Node currentFolder = FilesRoot;
+            BranchNode currentFolder = RootNode;
             for(int i = 0; i < fileCount; i++) {
                 byte nameLength = reader.ReadByte();
 
                 if(nameLength == 0x00) { // End of the "folder".
-                    currentFolder = currentFolder.Parent;
+                    currentFolder = currentFolder.Parent ?? currentFolder;
                     i--;
                     continue;
                 }
 
                 if(nameLength >= 0x80) { // If it is a "folder".
-                    Node childFolder = new(reader.ReadString(nameLength & 0x7F));
-                    childFolder.Contents.Add(true); // It is a "folder". (Contents[0] == true)
+                    BranchNode childFolder = new(reader.ReadString(nameLength & 0x7F));
 
-                    currentFolder = currentFolder.AddChild(childFolder);
+                    currentFolder = (BranchNode) currentFolder.AddChild(childFolder);
 
                     reader.Position += 2;
                     i--;
@@ -141,13 +138,12 @@ namespace NARCSharp {
                     bfatIndex = reader.Position;
                 }
 
-                Node child = new(reader.ReadString(nameLength));
-                child.Contents.Add(false); // It is a file. (Contents[0] == false)
+                LeafNode child = new(reader.ReadString(nameLength));
 
                 // Read FIMG section:
                 using(reader.TemporarySeek()) {
                     reader.Position = fimgIndex + currentFileOffset;
-                    child.Contents.Add(reader.ReadBytes((int) (currentFileEnd - currentFileOffset)));
+                    child.Contents = reader.ReadBytes((int) (currentFileEnd - currentFileOffset));
                 }
 
                 currentFolder.AddChild(child);
@@ -176,7 +172,7 @@ namespace NARCSharp {
         /// </summary>
         /// <param name="leaveOpen">Whether or not the stream will be kept opened. (false for disposing it)</param>
         public void Write(Stream stream, bool leaveOpen = false) {
-            using BinaryDataWriter writer = new(stream, Encoding.ASCII, leaveOpen) {
+            using BinaryDataWriter writer = new(stream, leaveOpen) {
                 ByteOrder = ByteOrder
             };
 
@@ -184,7 +180,7 @@ namespace NARCSharp {
             writer.Write("NARC",
                 BinaryStringFormat.NoPrefixOrTermination); // Magic string.
             writer.Write((ushort) 0xFFFE);                 // Byte order.
-            writer.Write(Version);                         // Version.
+            writer.Write(RootNode.Metadata?.Version);      // Version.
             writer.Position += 4;                          // Length skip. (calculated later)
             writer.Write((ushort) 0x10);                   // Header length.
             writer.Write((ushort) 0x03);                   // Section count.
@@ -199,7 +195,7 @@ namespace NARCSharp {
             writer.Position += 4; // Length skip. (calculated later)
 
             List<byte[]> fileContainer = new(); // Contains all the files without "folders".
-            FolderIterate(FilesRoot);
+            FolderIterate(RootNode);
 
             writer.Write(fileContainer.Count);               // Number of files. (hash pairs)
             writer.Write(new byte[fileContainer.Count * 8]); // Reserve hashes' positions.
@@ -211,12 +207,12 @@ namespace NARCSharp {
 
             long bfntLengthIndex = writer.Position; // For calculation the position later.
 
-            writer.Position += 4;                // Length skip. (calculated later)
-            writer.Write(bfntHeader.Length + 4); // Header length.
-            writer.Write(bfntHeader);            // Header data.
+            writer.Position += 4;                                    // Length skip. (calculated later)
+            writer.Write(RootNode.Metadata?.bfntUnknown.Length + 4); // Unknown data length.
+            writer.Write(RootNode.Metadata?.bfntUnknown);            // Unknown data.
 
             byte folderCount = 1;
-            WriteBFNTEntry(FilesRoot); // Write all BFNT entries recursively.
+            WriteBFNTEntry(RootNode); // Write all BFNT entries recursively.
 
             writer.Align(128); // Alignment required for proper reading.
             #endregion
@@ -231,7 +227,7 @@ namespace NARCSharp {
 
             long bfatIndex = 0x1C; // BFAT current position.
             foreach(byte[] entry in fileContainer) {
-                uint currentOffset = 
+                uint currentOffset =
                     (uint) (writer.Position - fimgLengthIndex - 4); // BFAT pair first entry.
 
                 writer.Write(entry); // File contents.
@@ -263,32 +259,44 @@ namespace NARCSharp {
             #endregion
 
 
-            void FolderIterate(Node folderNode) {
-                foreach(Node node in folderNode) {
-                    if(node.Contents[0] == true) // If it is a "folder" then iterate through it.
-                        FolderIterate(node);
-                    else                         // If it is a file then add its content to the list.
-                        fileContainer.Add(node.Contents[1]);
+            void FolderIterate(BranchNode branchNode) {
+                foreach(INode node in branchNode) {
+                    if(node is BranchNode subBranchNode) // If it is a "folder" then iterate through it.
+                        FolderIterate(subBranchNode);
+                    else                                 // If it is a file then add its content to the list.
+                        fileContainer.Add(node.Metadata);
                 }
             }
 
-            void WriteBFNTEntry(Node entry) {
-                foreach(Node node in entry) {
-                    if(node.Contents[0] == true) { // If it is a "folder".
-                        writer.Write((byte) (node.Name.Length + 0x80)); // Name's length.
-                        writer.Write(node.Name,
-                            BinaryStringFormat.NoPrefixOrTermination);  // Name.
-                        writer.Write(folderCount++);                    // Folder id. (count)
-                        writer.Write((byte) 0xF0);                      // Constant.
+            void WriteBFNTEntry(BranchNode entry) {
+                foreach(INode node in entry) {
+                    if(node is BranchNode branchNode) { // If it is a "folder".
+                        writer.Write((byte) (node.ID.Length + 0x80));  // ID's length.
+                        writer.Write(node.ID,
+                            BinaryStringFormat.NoPrefixOrTermination); // ID.
+                        writer.Write(folderCount++);                   // Folder id. (count)
+                        writer.Write((byte) 0xF0);                     // Constant.
 
-                        WriteBFNTEntry(node);
+                        WriteBFNTEntry(branchNode);
                     } else {
-                        writer.Write(node.Name); // File name.
+                        writer.Write(node.ID); // File name.
                     }
                 }
 
                 writer.Write((byte) 0x00); // End of "folder".
             }
+        }
+
+        public struct NARCHeader {
+            public NARCHeader() {
+                Version = 0x0100;
+                bfntUnknown = new byte[] {
+                    0x00, 0x00, 0x01, 0x00
+                };
+            }
+
+            public ushort Version;
+            public byte[] bfntUnknown;
         }
     }
 }

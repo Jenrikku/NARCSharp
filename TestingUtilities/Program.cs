@@ -2,7 +2,6 @@
 using NARCSharp;
 using System;
 using System.IO;
-using NARCSharp.TrueTree;
 
 namespace TestingUtilities {
     class Program {
@@ -28,7 +27,7 @@ namespace TestingUtilities {
                 case '2':
                     {
                         NARC narc = new(new FileStream(content, FileMode.Open));
-                        IterateAndExtract(narc.FilesRoot, content + " unpacked");
+                        IterateAndExtract(narc.RootNode, content + " unpacked");
                     }                    
                     break;
                 case '3':
@@ -53,19 +52,19 @@ namespace TestingUtilities {
                     break;
             }
 
-            void IterateAndExtract(Node folder, string path) {
+            void IterateAndExtract(BranchNode folder, string path) {
                 string absolutePath = path;
                 Directory.CreateDirectory(absolutePath);
 
-                foreach(Node node in folder)
-                    if(node.Contents[0] == true) // If it is a "folder"
+                foreach(INode node in folder)
+                    if(node is BranchNode branch) // If it is a "folder"
                         IterateAndExtract(
-                            node,
-                            Path.Join(absolutePath, node.Name));
+                            branch,
+                            Path.Join(absolutePath, node.ID));
                     else                         // If it is a file.
                         File.WriteAllBytes(
-                            Path.Join(absolutePath, node.Name),
-                            node.Contents[1]);
+                            Path.Join(absolutePath, node.ID),
+                            node.Contents);
             }
         }
     }
