@@ -56,6 +56,9 @@ namespace NARCSharp {
             for(uint i = 0; i < fatbCount; i++) // Reads all hashes.
                 positions[i] = (stream.Read<uint>(), stream.Read<uint>());
 
+            if(fatbCount > 0 && positions[0].endPos == positions[1].startPos)
+                narc.HasAlignment = false; // Disables alignment when writing if the file does not require it.
+
 
             // FNTB --------------------------
 
@@ -72,6 +75,8 @@ namespace NARCSharp {
             ulong dirEntriesPos = stream.Position;   // The current position within the directory entries array.
 
             ReadDirectory(narc.RootNode);
+
+            narc.Nameless = !narc.RootNode.HasChildren; // Checks if the file contains no names.
 
             // Called each time a directory is found.
             // The stream's position is within the directory entries array.
@@ -119,24 +124,37 @@ namespace NARCSharp {
             uint index = 0; // The file index. Used to get the right hash from the FATB section.
             IterateDirectory(narc.RootNode);
 
+            // Read remaining files with no names:
+            while(positions.Length > index) {
+                LeafNode<byte[]> file = new(index.ToString()); // Creates a new leaf node with the index as its name.
+
+                ReadContents(file);
+
+                narc.RootNode.AddChild(file); // Adds the file to the root node.
+            }
+
             // Reads a directory by iterating through all child nodes in it.
             void IterateDirectory(BranchNode<byte[]> dir) {
                 // Because of how NARC files are often written, files have to be read before child directories.
 
-                foreach(LeafNode<byte[]> file in dir.ChildLeaves) { // Reads files.
-                    (uint startPos, uint endPos) = positions[index++]; // Gets the current hash.
-
-                    using(stream.TemporarySeek()) {
-                        stream.Position += startPos; // Sets the position to the file's beginning.
-
-                        // Reads the file's contents.
-                        // The size is calculated by subtracting the starting position to the end position.
-                        file.Contents = stream.Read<byte>((int) (endPos - startPos));
-                    } // Return to the past position.
-                }
+                foreach(LeafNode<byte[]> file in dir.ChildLeaves) // Reads files.
+                    ReadContents(file);
 
                 foreach(BranchNode<byte[]> childDir in dir.ChildBranches) // Reads child directories.
                     IterateDirectory(childDir);
+            }
+
+            // Reads the contents from the next file and puts them into the given leaf node.
+            void ReadContents(LeafNode<byte[]> file) {
+                (uint startPos, uint endPos) = positions[index++]; // Gets the current hash.
+
+                using(stream.TemporarySeek()) {
+                    stream.Position += startPos; // Sets the position to the file's beginning.
+
+                    // Reads the file's contents.
+                    // The size is calculated by subtracting the starting position to the end position.
+                    file.Contents = stream.Read<byte>((int) (endPos - startPos));
+                } // Return to the past position.
             }
 
 
@@ -201,7 +219,10 @@ namespace NARCSharp {
             uint dirEntriesPos = (uint) stream.Position + 8; // The current position within the directory entries array.
             uint dirEntriesLength = 8;                       // The length of the directory entries array.
 
-            FindChildDirectories(narc.RootNode);
+            if(narc.Nameless) // If no names are contained, the root directory points towards the 4th byte.
+                dirEntriesLength = 4;
+            else
+                FindChildDirectories(narc.RootNode);
 
             // Finds all child directories in order to calculate the directory entries array:
             void FindChildDirectories(BranchNode<byte[]> dir) {
@@ -221,14 +242,16 @@ namespace NARCSharp {
             stream.Write((ushort) (narc.RootNode.ChildBranches.Count + 1));
 
             // Reserve space for directory entries:
-            stream.Position += dirEntriesLength - 8;
+            if(!narc.Nameless)
+                stream.Position += dirEntriesLength - 8;
 
             // Write names:
 
             byte directoryID = 0;  // Increases by one each time a directory's name has been written.
             ushort fileAmount = 0; // Increases by one each time a file's name has been written.
 
-            WriteNames(narc.RootNode);
+            if(!narc.Nameless) // Only write names if required.
+                WriteNames(narc.RootNode);
 
             // Writes all names and also goes back and writes directory entries when required:
             void WriteNames(BranchNode<byte[]> dir) {
@@ -274,7 +297,8 @@ namespace NARCSharp {
                 }
             }
 
-            stream.Align(128); // Alignment to the FIMG section.
+            if(narc.HasAlignment)
+                stream.Align(128); // Alignment to the FIMG section.
 
             using(stream.TemporarySeek()) {
                 // Calculates the FNTB section's length by taking in mind its starting point:
@@ -315,7 +339,8 @@ namespace NARCSharp {
                         fbatHashPos += 8; // Advances the position within the hash array.
                     } // Return to the past position.
 
-                    stream.Align(128); // Align to the next file.
+                    if(narc.HasAlignment)
+                        stream.Align(128); // Align to the next file.
                 }
 
                 foreach(BranchNode<byte[]> childDir in dir.ChildBranches)

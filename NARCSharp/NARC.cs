@@ -13,6 +13,9 @@ namespace NARCSharp {
         public ushort Reserved0; // Header length.
         public ushort Reserved1; // Section (block) count.
 
+        public bool Nameless; // Whether the FNTB section contains names.
+        public bool HasAlignment;
+
         public NARC() {
             ByteOrder = ByteOrder.LittleEndian;
             RootNode = new(string.Empty);
@@ -20,6 +23,9 @@ namespace NARCSharp {
             Version = 0x0100;
             Reserved0 = 16;
             Reserved1 = 3;
+
+            Nameless = false;
+            HasAlignment = true;
         }
     }
 }
