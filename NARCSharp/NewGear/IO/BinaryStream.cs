@@ -156,8 +156,6 @@ namespace NewGear.IO {
                 for(int i = 0; i < bytes.Length; i++)
                     bytes[i] = *PointerAt(position++);
 
-            //Debug.Assert(typeof(T).Name != "Field");
-
             fixed(byte* ptr = bytes)
                 return *(T*) ptr;
         }
@@ -285,8 +283,11 @@ namespace NewGear.IO {
         /// Writes a given number of bytes from a pointer. This does not take in mind <see cref="ByteOrder"/>.
         /// </summary>
         public void Write(byte* pointer, int length) {
-            for(int i = 0; i < length; i++, Length++)
+            for(int i = 0; i < length; i++)
                 *PointerAt(position++) = pointer[i];
+
+            if(Length < position)
+                Length = position;
         }
 
 
