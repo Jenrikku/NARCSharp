@@ -56,8 +56,16 @@ namespace NARCSharp {
             for(uint i = 0; i < fatbCount; i++) // Reads all hashes.
                 positions[i] = (stream.Read<uint>(), stream.Read<uint>());
 
-            if(fatbCount > 0 && positions[0].endPos == positions[1].startPos)
-                narc.HasAlignment = false; // Disables alignment when writing if the file does not require it.
+            if(fatbCount > 0) {
+                narc.HasAlignment = false; // Disables alignment temporarily.
+
+                // Goes through all file starts and ends and checks if there are any differences:
+                for(int i = 0; i < positions.Length - 1;) {
+                    if(positions[i].endPos != positions[++i].startPos)
+                        // Disables alignment when writing if the file does not require it:
+                        narc.HasAlignment = true;
+                }
+            }
 
 
             // FNTB --------------------------
