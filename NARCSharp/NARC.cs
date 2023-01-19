@@ -27,5 +27,7 @@ namespace NARCSharp {
             Nameless = false;
             HasAlignment = true;
         }
+
+        public NARCFileSystem AsFileSystem() => new(in this);
     }
 }
