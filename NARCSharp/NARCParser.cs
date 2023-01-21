@@ -195,7 +195,7 @@ namespace NARCSharp {
 
             CountFiles(narc.RootNode);
 
-            // Goes thourgh all files inside the given directory and all its children:
+            // Goes through all files inside the given directory and all its children:
             void CountFiles(BranchNode<byte[]> dir) {
                 foreach(LeafNode<byte[]> file in dir.ChildLeaves)
                     count++;
@@ -209,7 +209,7 @@ namespace NARCSharp {
             stream.Write(count); // Hash count.
 
             // The current position inside the hash array. Used when writing file contents.
-            uint fbatHashPos = (uint) stream.Position;
+            uint fatbHashPos = (uint) stream.Position;
 
             // Reserve spaces to put hashes later:
             stream.Position += count * 8;
@@ -289,7 +289,7 @@ namespace NARCSharp {
                         // Sets the position to the beginning of the directory entries array.
                         stream.Position = dirEntriesPos;
 
-                        stream.Write(nameSectionRelPos); // Offset to the directoriy's beginning inside the names array.
+                        stream.Write(nameSectionRelPos); // Offset to the directory's beginning inside the names array.
                         stream.Write(fileAmount);        // Amount of files present before this directory.
 
                         ushort childCount = (ushort) node.ChildBranches.Count; // Amount of child directories.
@@ -339,12 +339,12 @@ namespace NARCSharp {
                     fileEnd = (uint) stream.Position - (fimgStartPos + 8); // Calculates file's end.
 
                     using(stream.TemporarySeek()) {
-                        stream.Position = fbatHashPos; // Goes to the current position within the hash array.
+                        stream.Position = fatbHashPos; // Goes to the current position within the hash array.
 
                         stream.Write(fileStart); // File's start. 
                         stream.Write(fileEnd);   // File's end.
 
-                        fbatHashPos += 8; // Advances the position within the hash array.
+                        fatbHashPos += 8; // Advances the position within the hash array.
                     } // Return to the past position.
 
                     if(narc.HasAlignment)
