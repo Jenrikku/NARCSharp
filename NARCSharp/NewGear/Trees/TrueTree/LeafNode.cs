@@ -1,6 +1,9 @@
-﻿namespace NewGear.Trees.TrueTree {
-    public class LeafNode<T> : INode<T> {
-        public LeafNode(string name = "", T? contents = default) {
+﻿namespace NewGear.Trees.TrueTree
+{
+    public class LeafNode<T> : INode<T>
+    {
+        public LeafNode(string name = "", T? contents = default)
+        {
             Name = name;
             Contents = contents;
         }

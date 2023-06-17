@@ -4,34 +4,39 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace NewGear.IO {
-    public unsafe class BinaryStream : IDisposable, IEnumerable<byte> {
+namespace NewGear.IO
+{
+    public unsafe class BinaryStream : IDisposable, IEnumerable<byte>
+    {
         // Each data block is 1MB long. (1048576 bytes)
         private const int blockLength = 1048576;
 
         private readonly List<byte[]> dataBlocks = new();
         private ulong position = 0;
-        
-        private byte* PointerAt(ulong position) {
-            int blockIndex = (int) (position / blockLength);
 
-            if(dataBlocks.Count - 1 < blockIndex)
+        private byte* PointerAt(ulong position)
+        {
+            int blockIndex = (int)(position / blockLength);
+
+            if (dataBlocks.Count - 1 < blockIndex)
                 ExtendMemory();
 
-            return (byte*) Marshal.UnsafeAddrOfPinnedArrayElement(
-                dataBlocks[blockIndex], (int) position - blockLength * blockIndex);
+            return (byte*)
+                Marshal.UnsafeAddrOfPinnedArrayElement(
+                    dataBlocks[blockIndex],
+                    (int)position - blockLength * blockIndex
+                );
         }
 
-        private void ExtendMemory() {
+        private void ExtendMemory()
+        {
             byte[] block = new byte[blockLength];
 
-            if(FillingNumber != 0x00)
+            if (FillingNumber != 0x00)
                 Array.Fill(block, FillingNumber);
 
             dataBlocks.Add(block);
         }
-
-
 
         // public --------------------------------
 
@@ -39,9 +44,10 @@ namespace NewGear.IO {
         /// Creates a new empty stream.
         /// </summary>
         /// <param name="fillingNumber">The number that will be written to all new empty spaces.</param>
-        public BinaryStream(byte fillingNumber = 0x00) {
+        public BinaryStream(byte fillingNumber = 0x00)
+        {
             FillingNumber = fillingNumber;
-            
+
             ExtendMemory();
         }
 
@@ -49,21 +55,23 @@ namespace NewGear.IO {
         /// Creates a stream from a copy of an existing array.
         /// </summary>
         /// <param name="fillingNumber">The number that will be written to all new empty spaces.</param>
-        public BinaryStream(byte[] data, byte fillingNumber = 0x00) {
+        public BinaryStream(byte[] data, byte fillingNumber = 0x00)
+        {
             FillingNumber = fillingNumber;
 
             int partitionCount = data.Length / blockLength + 1;
 
-            for(int i = 0; i < partitionCount; i++) {
+            for (int i = 0; i < partitionCount; i++)
+            {
                 byte[] temp = new byte[blockLength];
                 int length = Math.Min(data.Length - i * blockLength, blockLength);
 
-                if(length == blockLength && fillingNumber != 0x00)
+                if (length == blockLength && fillingNumber != 0x00)
                     Array.Fill(temp, fillingNumber);
 
                 Array.Copy(data, i * blockLength, temp, 0, length);
 
-                Length += (uint) length;
+                Length += (uint)length;
                 dataBlocks.Add(temp);
             }
         }
@@ -71,18 +79,21 @@ namespace NewGear.IO {
         /// <summary>
         /// The position of the stream. The next value will be read from this position.
         /// </summary>
-        public ulong Position {
+        public ulong Position
+        {
             get => position;
-            set {
+            set
+            {
                 // Reserves more memory if required.
-                if((ulong) dataBlocks.Count * blockLength < value) {
-                    int newAmount = (int) (value / blockLength) - dataBlocks.Count;
+                if ((ulong)dataBlocks.Count * blockLength < value)
+                {
+                    int newAmount = (int)(value / blockLength) - dataBlocks.Count;
 
-                    for(int i = 0; i < newAmount; i++)
+                    for (int i = 0; i < newAmount; i++)
                         ExtendMemory();
                 }
 
-                if(Length < value)
+                if (Length < value)
                     Length = value;
 
                 position = value;
@@ -102,71 +113,85 @@ namespace NewGear.IO {
         /// <summary>
         /// Specifies the order of the bytes when reading or writing a numeric value.
         /// </summary>
-        public ByteOrder ByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
+        public ByteOrder ByteOrder = BitConverter.IsLittleEndian
+            ? ByteOrder.LittleEndian
+            : ByteOrder.BigEndian;
 
         /// <summary>
         /// The default <see cref="Encoding"/> that will be used when reading strings if none is specified.
         /// </summary>
         public Encoding DefaultEncoding = Encoding.ASCII;
 
-
         // Reading ----------------
 
         /// <summary>
         /// Read a value of the given type from the stream taking in mind <see cref="ByteOrder"/>.
         /// </summary>
-        public T Read<T>() where T : unmanaged {
+        public T Read<T>()
+            where T : unmanaged
+        {
             int size = sizeof(T);
             byte[] bytes = new byte[size];
             int pos = 0;
             bool needsReading = true;
 
-            if(typeof(T) != typeof(byte) && // Skip byte (no byte order).
-               (!BitConverter.IsLittleEndian != (ByteOrder == ByteOrder.BigEndian))) { // ByteOrder does not match.
-
-                if(!typeof(T).IsPrimitive && !typeof(T).IsEnum) {
-                    foreach(FieldInfo field in typeof(T).GetFields()) {
-                        if(field.IsLiteral /* (const) */) continue;
+            if (
+                typeof(T) != typeof(byte)
+                && // Skip byte (no byte order).
+                (!BitConverter.IsLittleEndian != (ByteOrder == ByteOrder.BigEndian))
+            )
+            { // ByteOrder does not match.
+                if (!typeof(T).IsPrimitive && !typeof(T).IsEnum)
+                {
+                    foreach (FieldInfo field in typeof(T).GetFields())
+                    {
+                        if (
+                            field.IsLiteral /* (const) */
+                        )
+                            continue;
                         needsReading = false;
 
                         int fieldSize;
 
-                        if(field.FieldType.IsEnum)
+                        if (field.FieldType.IsEnum)
                             fieldSize = Marshal.SizeOf(Enum.GetUnderlyingType(field.FieldType));
                         else
                             fieldSize = Marshal.SizeOf(field.FieldType);
 
-                        for(int i = fieldSize - 1; i > -1; i--)
+                        for (int i = fieldSize - 1; i > -1; i--)
                             bytes[i + pos] = *PointerAt(position++);
 
                         pos += fieldSize;
                     }
                 }
 
-                if(needsReading) {
-                    for(uint i = 0; i < size; i++)
-                        bytes[i] = *PointerAt(position + (uint) size - i - 1);
+                if (needsReading)
+                {
+                    for (uint i = 0; i < size; i++)
+                        bytes[i] = *PointerAt(position + (uint)size - i - 1);
 
-                    position += (uint) size;
+                    position += (uint)size;
                     needsReading = false;
                 }
             }
 
-            if(needsReading)
-                for(int i = 0; i < bytes.Length; i++)
+            if (needsReading)
+                for (int i = 0; i < bytes.Length; i++)
                     bytes[i] = *PointerAt(position++);
 
-            fixed(byte* ptr = bytes)
-                return *(T*) ptr;
+            fixed (byte* ptr = bytes)
+                return *(T*)ptr;
         }
 
         /// <summary>
         /// Reads an array from the stream and advances the position.
         /// </summary>
-        public T[] Read<T>(int amount) where T : unmanaged {
+        public T[] Read<T>(int amount)
+            where T : unmanaged
+        {
             T[] array = new T[amount];
 
-            for(int i = 0; i < amount; i++)
+            for (int i = 0; i < amount; i++)
                 array[i] = Read<T>();
 
             return array;
@@ -180,7 +205,8 @@ namespace NewGear.IO {
         /// <summary>
         /// Reads a string from the stream using a given <see cref="Encoding"/>.
         /// </summary>
-        public string ReadString(int length, Encoding encoding) {
+        public string ReadString(int length, Encoding encoding)
+        {
             byte[] bytes = Read<byte>(length);
 
             return encoding.GetString(bytes);
@@ -194,66 +220,78 @@ namespace NewGear.IO {
         /// <summary>
         /// Reads a string that ends with a given byte using a given <see cref="Encoding"/>.
         /// </summary>
-        public string ReadStringUntil(Encoding encoding, byte end = 0x00) {
+        public string ReadStringUntil(Encoding encoding, byte end = 0x00)
+        {
             int length = 0;
 
-            while(*PointerAt(position++) != end)
+            while (*PointerAt(position++) != end)
                 length++;
 
-            return encoding.GetString(PointerAt(position - (uint) length - 1), length);
+            return encoding.GetString(PointerAt(position - (uint)length - 1), length);
         }
-
 
         // Writing ----------------
 
         /// <summary>
         /// Writes any given value to the stream taking in mind <see cref="ByteOrder"/>.
         /// </summary>
-        public void Write<T>(T value) where T : unmanaged {
-            if(typeof(T) != typeof(byte) && // Skip byte (no byte order).
-               (BitConverter.IsLittleEndian != (ByteOrder == ByteOrder.LittleEndian))) { // ByteOrder does not match.
-
-                byte* ptr = (byte*) &value;
+        public void Write<T>(T value)
+            where T : unmanaged
+        {
+            if (
+                typeof(T) != typeof(byte)
+                && // Skip byte (no byte order).
+                (BitConverter.IsLittleEndian != (ByteOrder == ByteOrder.LittleEndian))
+            )
+            { // ByteOrder does not match.
+                byte* ptr = (byte*)&value;
                 uint pos = 0;
 
                 bool needsReversion = true;
 
-                if(!typeof(T).IsPrimitive && !typeof(T).IsEnum) {
-                    foreach(FieldInfo field in typeof(T).GetFields()) {
+                if (!typeof(T).IsPrimitive && !typeof(T).IsEnum)
+                {
+                    foreach (FieldInfo field in typeof(T).GetFields())
+                    {
                         object? child = field.GetValue(value);
 
-                        if(child is null || field.IsLiteral /* (const) */) continue;
+                        if (
+                            child is null || field.IsLiteral /* (const) */
+                        )
+                            continue;
                         needsReversion = false;
 
                         GCHandle handle = GCHandle.Alloc(child, GCHandleType.Pinned);
-                        byte* childPtr = (byte*) handle.AddrOfPinnedObject();
+                        byte* childPtr = (byte*)handle.AddrOfPinnedObject();
 
                         int size = Marshal.SizeOf(child);
-                        for(int i = size - 1; i > -1; i--, pos++)
+                        for (int i = size - 1; i > -1; i--, pos++)
                             ptr[pos] = childPtr[i];
 
                         handle.Free();
                     }
                 }
 
-                if(needsReversion) {
+                if (needsReversion)
+                {
                     T temp = value;
-                    byte* tempPtr = (byte*) &temp;
+                    byte* tempPtr = (byte*)&temp;
 
-                    for(int i = sizeof(T) - 1, j = 0; i > -1; i--, j++)
+                    for (int i = sizeof(T) - 1, j = 0; i > -1; i--, j++)
                         ptr[i] = tempPtr[j];
                 }
-
             }
 
-            Write((byte*) &value, sizeof(T));
+            Write((byte*)&value, sizeof(T));
         }
 
         /// <summary>
         /// Writes an array to the stream.
         /// </summary>
-        public void Write<T>(T[] array) where T : unmanaged {
-            foreach(T value in array)
+        public void Write<T>(T[] array)
+            where T : unmanaged
+        {
+            foreach (T value in array)
                 Write(value);
         }
 
@@ -271,10 +309,11 @@ namespace NewGear.IO {
         /// Writes an object of unknown type to the stream. The length in bytes of this object has to be specified.
         /// </summary>
         /// <param name="length">The length in bytes of this object.</param>
-        public void Write(object value, int length) {
+        public void Write(object value, int length)
+        {
             GCHandle handle = GCHandle.Alloc(value, GCHandleType.Pinned);
 
-            Write((byte*) handle.AddrOfPinnedObject(), length);
+            Write((byte*)handle.AddrOfPinnedObject(), length);
 
             handle.Free();
         }
@@ -282,29 +321,31 @@ namespace NewGear.IO {
         /// <summary>
         /// Writes a given number of bytes from a pointer. This does not take in mind <see cref="ByteOrder"/>.
         /// </summary>
-        public void Write(byte* pointer, int length) {
-            for(int i = 0; i < length; i++)
+        public void Write(byte* pointer, int length)
+        {
+            for (int i = 0; i < length; i++)
                 *PointerAt(position++) = pointer[i];
 
-            if(Length < position)
+            if (Length < position)
                 Length = position;
         }
-
 
         // Others ----------------
 
         /// <summary>
         /// Packs the contents of the stream into a byte array.
         /// </summary>
-        public byte[] ToArray() {
+        public byte[] ToArray()
+        {
             byte[] result = new byte[Length];
             int index = 0;
             ulong pos = 0;
-            
-            while(pos < position) {
-                ulong current = Math.Min(Length - blockLength * (uint) index, blockLength);
 
-                Array.Copy(dataBlocks[index], result, (int) current);
+            while (pos < position)
+            {
+                ulong current = Math.Min(Length - blockLength * (uint)index, blockLength);
+
+                Array.Copy(dataBlocks[index], result, (int)current);
 
                 pos += current;
             }
@@ -325,11 +366,12 @@ namespace NewGear.IO {
         /// <summary>
         /// Sets the position of the stream to a multiple of the given number.
         /// </summary>
-        public void Align(uint amount) {
-            if(position % amount == 0)
+        public void Align(uint amount)
+        {
+            if (position % amount == 0)
                 return; // The stream is aligned already.
 
-            uint last = (uint) (position / amount);
+            uint last = (uint)(position / amount);
 
             Position = amount * ++last;
         }
@@ -337,16 +379,19 @@ namespace NewGear.IO {
         /// <summary>
         /// Removes all data within the stream and frees memory.
         /// </summary>
-        public void Dispose() {
+        public void Dispose()
+        {
             dataBlocks.Clear();
             GC.SuppressFinalize(this);
         }
 
-        public IEnumerator<byte> GetEnumerator() {
-            for(ulong i = 0; i < Length; i++) {
-                int blockIndex = (int) (i / blockLength);
+        public IEnumerator<byte> GetEnumerator()
+        {
+            for (ulong i = 0; i < Length; i++)
+            {
+                int blockIndex = (int)(i / blockLength);
 
-                yield return dataBlocks[blockIndex][i - (ulong) blockLength * (uint) blockIndex];
+                yield return dataBlocks[blockIndex][i - (ulong)blockLength * (uint)blockIndex];
             }
         }
 

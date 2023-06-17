@@ -1,9 +1,12 @@
-﻿namespace NewGear.IO {
-    public struct SeekTask : IDisposable {
+﻿namespace NewGear.IO
+{
+    public struct SeekTask : IDisposable
+    {
         private BinaryStream stream;
         private ulong position;
 
-        internal SeekTask(BinaryStream stream) {
+        internal SeekTask(BinaryStream stream)
+        {
             this.stream = stream;
             position = stream.Position;
         }

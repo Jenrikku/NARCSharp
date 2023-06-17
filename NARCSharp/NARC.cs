@@ -1,9 +1,12 @@
 ﻿using NewGear.IO;
 using NewGear.Trees.TrueTree;
 
-namespace NARCSharp {
-    public struct NARC {
+namespace NARCSharp
+{
+    public struct NARC
+    {
         public ByteOrder ByteOrder;
+
         /// <summary>
         /// The root of the archive's file system. Files and directories can be accessed from it.
         /// </summary>
@@ -16,7 +19,8 @@ namespace NARCSharp {
         public bool Nameless; // Whether the FNTB section contains names.
         public bool HasAlignment;
 
-        public NARC() {
+        public NARC()
+        {
             ByteOrder = ByteOrder.LittleEndian;
             RootNode = new(string.Empty);
 
