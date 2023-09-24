@@ -23,6 +23,20 @@ public class NARCFileSystem
         return node.Contents;
     }
 
+    public bool TryGet(string path, out byte[] contents)
+    {
+        LeafNode<byte[]>? node = _root.FindChildByPath<LeafNode<byte[]>>(path);
+
+        if (node?.Contents is null)
+        {
+            contents = Array.Empty<byte>();
+            return false;
+        }
+
+        contents = node.Contents;
+        return true;
+    }
+
     /// <summary>
     /// Writes a file to the system, overriding it if the entry already exists.
     /// </summary>
