@@ -23,7 +23,7 @@ public class NARCFileSystem
         return node.Contents;
     }
 
-    public bool TryGet(string path, out byte[] contents)
+    public bool TryGetFile(string path, out byte[] contents)
     {
         LeafNode<byte[]>? node = _root.FindChildByPath<LeafNode<byte[]>>(path);
 
