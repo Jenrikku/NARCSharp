@@ -95,6 +95,11 @@ public class NARCFileSystem
 
     public Dictionary<string, INode<byte[]>>? GetDirectoryContents(string path)
     {
+        path = path.Trim();
+
+        if (string.IsNullOrEmpty(path) || path.Equals("/"))
+            return GetDirectoryContents(_root);
+
         BranchNode<byte[]>? branch = _root.FindChildByPath<BranchNode<byte[]>>(path);
 
         if (branch is null)
@@ -131,6 +136,7 @@ public class NARCFileSystem
 
         if (startPath is null)
             return Array.Empty<string>();
+
         RecursiveSearch(startPath);
 
         void RecursiveSearch(BranchNode<byte[]> node)
