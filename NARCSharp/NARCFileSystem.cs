@@ -154,6 +154,29 @@ public class NARCFileSystem
         return pathList.ToArray();
     }
 
+    /// <summary>
+    /// Enumerates all files within the desired directory, which is the root by default.<br/>
+    /// Note that this method does not go into subdirectories.
+    /// </summary>
+    /// <param name="directory">The directory to enumerate the files from.</param>
+    public IEnumerable<(string Name, byte[] Contents)> EnumerateFiles(string directory = "/")
+    {
+        directory = directory.Trim();
+
+        BranchNode<byte[]>? branch;
+
+        if (string.IsNullOrEmpty(directory) || directory.Equals("/"))
+            branch = _root;
+        else
+            branch = _root.FindChildByPath<BranchNode<byte[]>>(directory);
+
+        if (branch is null)
+            yield break;
+
+        foreach (LeafNode<byte[]> child in branch.ChildLeaves)
+            yield return (child.Name, child.Contents ?? Array.Empty<byte>());
+    }
+
     public NARC ToNARC() => _narc;
 
     private static bool RemoveFile(LeafNode<byte[]> leaf) =>
