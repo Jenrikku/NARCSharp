@@ -97,7 +97,7 @@ public class NARCFileSystem
     {
         path = path.Trim();
 
-        if (string.IsNullOrEmpty(path) || path.Equals("/"))
+        if (string.IsNullOrEmpty(path) || path == "/")
             return GetDirectoryContents(_root);
 
         BranchNode<byte[]>? branch = _root.FindChildByPath<BranchNode<byte[]>>(path);
@@ -165,7 +165,7 @@ public class NARCFileSystem
 
         BranchNode<byte[]>? branch;
 
-        if (string.IsNullOrEmpty(directory) || directory.Equals("/"))
+        if (string.IsNullOrEmpty(directory) || directory == "/")
             branch = _root;
         else
             branch = _root.FindChildByPath<BranchNode<byte[]>>(directory);
