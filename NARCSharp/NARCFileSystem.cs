@@ -53,7 +53,7 @@ public class NARCFileSystem
         string[] parts = path.Split('/');
         BranchNode<byte[]> current = _root;
 
-        for (int i = 0; i <= parts.Length; i++)
+        for (int i = 0; i < parts.Length - 1 ; i++)
         {
             BranchNode<byte[]> child = new(parts[i]);
 
@@ -61,7 +61,22 @@ public class NARCFileSystem
             current = child;
         }
 
-        current.AddChild(new LeafNode<byte[]>(parts[parts.Length], data));
+        current.AddChild(new LeafNode<byte[]>(parts[parts.Length - 1], data)); // Add Leaf with the name of the last part of the path
+    }
+    
+    /// <summary>
+    /// Writes a file to the root of the system, overriding it if the entry already exists.
+    /// </summary>
+    public void AddFileRoot(string name, byte[] data)
+    {
+        LeafNode<byte[]>? node = _root.ChildLeaves.Find((LeafNode<byte[]> node) => {return node.Name == name;});
+
+        if (node is not null)
+        {
+            node.Contents = data;
+            return;
+        }
+        _root.AddChild(new LeafNode<byte[]>(name, data));
     }
 
     /// <summary>
