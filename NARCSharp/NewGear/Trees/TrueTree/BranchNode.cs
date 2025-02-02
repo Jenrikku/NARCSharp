@@ -121,10 +121,13 @@ public class BranchNode<T> : INode<T>, IEnumerable<INode<T>>
     /// Finds a child by it's relative path.
     /// Example: "firstChild/secondChild"
     /// </summary>
-    public NodeType? FindChildByPath<NodeType>(string relativePath)
-        where NodeType : INode<T>
+    public NType? FindChildByPath<NType>(string relativePath)
+        where NType : INode<T>
     {
-        string[] entries = relativePath.Split('/');
+        string[] entries = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (entries[0] == ".")
+            entries = entries.Skip(1).ToArray();
 
         BranchNode<T> current = this;
         for (int i = 0; i < entries.Length; i++)
@@ -133,14 +136,9 @@ public class BranchNode<T> : INode<T>, IEnumerable<INode<T>>
 
             if (i != entries.Length - 1)
             {
-                BranchNode<T>? child = current.ChildBranches.Find(
-                    (BranchNode<T> node) =>
-                    {
-                        return node.Name == entry;
-                    }
-                );
+                BranchNode<T>? child = current.ChildBranches.Find(node => node.Name == entry);
 
-                if (child == null)
+                if (child is null)
                     return default;
 
                 current = child;
@@ -149,24 +147,10 @@ public class BranchNode<T> : INode<T>, IEnumerable<INode<T>>
             }
 
             // Last part of the path:
-            if (typeof(NodeType) == typeof(BranchNode<T>))
-                return (NodeType?)
-                    (INode<T>?)
-                        current.ChildBranches.Find(
-                            (BranchNode<T> node) =>
-                            {
-                                return node.Name == entry;
-                            }
-                        );
+            if (typeof(NType) == typeof(BranchNode<T>))
+                return (NType?)(INode<T>?)current.ChildBranches.Find(node => node.Name == entry);
             else
-                return (NodeType?)
-                    (INode<T>?)
-                        current.ChildLeaves.Find(
-                            (LeafNode<T> node) =>
-                            {
-                                return node.Name == entry;
-                            }
-                        );
+                return (NType?)(INode<T>?)current.ChildLeaves.Find(node => node.Name == entry);
         }
 
         return default;
